@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-panel: var(--panel);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-regime-range: var(--regime-range);
+  --color-regime-trend: var(--regime-trend);
+  --color-regime-unstable: var(--regime-unstable);
+
+  --color-level-high: var(--level-high);
+  --color-level-medium: var(--level-medium);
+  --color-level-low: var(--level-low);
+  --color-level-unsuitable: var(--level-unsuitable);
+
+  --color-chart-up: var(--chart-up);
+  --color-chart-down: var(--chart-down);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+}
+
+:root {
+  --radius: 0.375rem;
+
+  --background: oklch(0.165 0.01 248);
+  --foreground: oklch(0.92 0.004 248);
+
+  --card: oklch(0.2 0.012 248);
+  --card-foreground: oklch(0.92 0.004 248);
+  --panel: oklch(0.185 0.011 248);
+
+  --popover: oklch(0.2 0.012 248);
+  --popover-foreground: oklch(0.92 0.004 248);
+
+  --border: oklch(0.29 0.012 248);
+  --input: oklch(0.29 0.012 248);
+  --ring: oklch(0.6 0.11 235);
+
+  --muted: oklch(0.24 0.012 248);
+  --muted-foreground: oklch(0.64 0.014 248);
+
+  --primary: oklch(0.66 0.13 233);
+  --primary-foreground: oklch(0.16 0.01 248);
+
+  --accent: oklch(0.26 0.014 248);
+  --accent-foreground: oklch(0.92 0.004 248);
+
+  /* Regime — kept calm, not neon */
+  --regime-range: oklch(0.7 0.1 200);
+  --regime-trend: oklch(0.78 0.1 85);
+  --regime-unstable: oklch(0.66 0.15 25);
+
+  /* Grid suitability levels */
+  --level-high: oklch(0.72 0.12 158);
+  --level-medium: oklch(0.79 0.11 85);
+  --level-low: oklch(0.72 0.13 55);
+  --level-unsuitable: oklch(0.66 0.15 25);
+
+  --chart-up: oklch(0.72 0.12 158);
+  --chart-down: oklch(0.66 0.15 25);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+}

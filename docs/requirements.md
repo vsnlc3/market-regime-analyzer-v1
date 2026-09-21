@@ -127,6 +127,10 @@ OHLCVから以下のような指標・特徴量を算出する。
 * Range Break Count
 * Oscillation Score
 
+### Breakout Risk
+
+* Breakout Risk
+
 これらを組み合わせてMarket Regimeを判定する。
 
 ---
@@ -200,14 +204,14 @@ MVPではルールベースの説明文とし、LLMに直接売買判断はさ�
 例：
 
 ```text
-GET /api/v1/analysis/BTCUSDT
+GET /api/v1/analysis/BTC
 ```
 
 レスポンス例：
 
 ```json
 {
-  "symbol": "BTCUSDT",
+  "symbol": "BTC",
   "timeframe": "1h",
   "regime": "RANGE",
   "gridSuitability": 86,
@@ -215,7 +219,8 @@ GET /api/v1/analysis/BTCUSDT
     "trendStrength": 18,
     "volatility": 64,
     "rangeStability": 84,
-    "oscillation": 91
+    "oscillation": 91,
+    "breakoutRisk": 21
   },
   "reasons": [
     "Directional trend is weak",
@@ -240,6 +245,7 @@ Web画面では最低限以下を表示する。
 * Volatility
 * Range Stability
 * Oscillation
+* Breakout Risk
 * 判定理由
 * ローソク足チャート
 

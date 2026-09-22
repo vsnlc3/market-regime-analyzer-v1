@@ -1,7 +1,0 @@
-hyperliquid:
-  base-url: ${HYPERLIQUID_BASE_URL:https://api.hyperliquid.xyz}
-
-spring:
-  jpa:
-    hibernate:
-      ddl-auto: validate

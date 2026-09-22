@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Maven
+target/
+
 # Next.js
 .next/
 out/

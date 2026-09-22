@@ -2,18 +2,21 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { AnalysisControls } from "@/components/analysis-controls"
 import { formatPrice, type Timeframe, type AnalysisWindow } from "@/lib/mock-data"
+import { formatDataAsOf } from "@/lib/display"
 
 export function CoinAnalysisHeader({
   symbol,
   name,
   price,
+  dataAsOf,
   timeframe,
   window,
   query,
 }: {
   symbol: string
   name: string
-  price: number
+  price?: number
+  dataAsOf?: string
   timeframe: Timeframe
   window: AnalysisWindow
   query: string
@@ -38,9 +41,14 @@ export function CoinAnalysisHeader({
               <h1 className="text-xl font-semibold tracking-tight text-foreground">{symbol}</h1>
               <span className="text-sm text-muted-foreground">{name}</span>
             </div>
-            <span className="font-mono text-2xl font-semibold tabular-nums text-foreground">
-              {formatPrice(price)}
-            </span>
+            {price !== undefined ? (
+              <span className="font-mono text-2xl font-semibold tabular-nums text-foreground">
+                {formatPrice(price)}
+              </span>
+            ) : null}
+            {dataAsOf ? (
+              <span className="text-xs text-muted-foreground">Last Updated {formatDataAsOf(dataAsOf)}</span>
+            ) : null}
           </div>
         </div>
 

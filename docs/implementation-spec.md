@@ -294,6 +294,20 @@ Indicator Serviceは数値計算のみを担当する。
 
 Market Regime判定やGrid Suitability判定は行わない。
 
+### Indicatorの初期計算条件
+
+以下はMVPの初期値とする。最適値として固定せず、将来のBacktest結果をもとに調整可能な値として扱う。
+
+* ADXはPeriod 14、OHLCを使用し、ta4jで利用可能な実装を使用する。
+* ATRはPeriod 14、OHLCを使用し、ta4jで利用可能な実装を使用する。
+* ATR %は `ATR(14) / Close × 100` で算出する。Closeは対象Candleの終値とし、計算時に丸めない。Closeが0など計算不能な場合は、0として扱わず算出不能とする。
+* EMAはClose系列からEMA20とEMA50を算出する。
+* Bollinger BandはClose系列、Period 20、Standard Deviation Multiplier 2.0を使用する。Middle BandはSMA20、Upper Bandは `SMA20 + 2σ`、Lower Bandは `SMA20 - 2σ` とする。
+* Indicator計算対象は確定済みCandleのみとし、未来のCandleや未確定Candleを使用しない。
+* Indicator一式の算出に必要な最低Candle数は50本とする。50本未満の場合はダミー値を返さず、算出不能として扱う。
+* Candleの価格・数量はBigDecimalを維持し、Indicator計算途中で表示用の丸めを行わない。Threshold判定等では丸め前の値を利用できるようにする。
+* 上記のPeriod、Multiplier、最低Candle数はIndicator計算に必要な設定値として一箇所で管理し、ロジック内へ散在させない。
+
 ---
 
 ## 10. Feature Service
@@ -327,6 +341,178 @@ Trend Strength
 ```
 
 Feature Serviceは市場の特徴を数値化する責務を持つが、最終的なMarket Regime判定は行わない。
+
+### Featureの初期計算条件
+
+以下はMVPの初期仕様とする。最適値として固定せず、将来のBacktest結果をもとに調整可能な値として扱う。
+
+Feature計算には分析時点までに確定しているCandleだけを使用する。未来のCandleや未確定Candleは使用しない。基本Lookbackは直近50本とし、50本未満の場合はダミー値を返さず算出不能として扱う。0〜100のScoreは最終的に0〜100へClampし、計算途中では表示用の丸めを行わない。
+
+Featureの内部結果は、以下の値を扱う。
+
+* `trendStrength`: 0〜100
+* `volatility`: 0〜100
+* `efficiencyRatio`: 0〜1
+* `rangeStability`: 0〜100
+* `rangeStayRatio`: 0〜100
+* `reversalCount`: integer
+* `oscillation`: 0〜100
+* `rangeBreakCount`: integer
+* `breakoutRisk`: 0〜100
+
+#### Efficiency Ratio
+
+Periodは20本とし、次の式で算出する。
+
+```text
+ER = abs(Close[t] - Close[t-20])
+     / sum(abs(Close[i] - Close[i-1]))
+```
+
+分母は直近20期間のClose変化量の絶対値合計とする。分母が0の場合は、方向性が存在しない状態としてERを0とする。
+
+#### Trend Strength
+
+ADX14、Efficiency Ratio 20、EMA20 / EMA50 separationを使用する。
+
+```text
+adxScore = clamp((ADX - 15) / (40 - 15) * 100, 0, 100)
+efficiencyRatioScore = Efficiency Ratio * 100
+emaSeparationAtr = abs(EMA20 - EMA50) / ATR14
+emaSeparationScore = clamp(emaSeparationAtr / 2.0 * 100, 0, 100)
+
+trendStrength =
+    0.50 * adxScore
+  + 0.30 * efficiencyRatioScore
+  + 0.20 * emaSeparationScore
+```
+
+ADXが15以下の場合のADX Scoreは0、40以上の場合は100とする。ATR14が0の場合のEMA Separation Scoreは0とする。結果は0〜100へClampする。
+
+#### Volatility
+
+VolatilityはATR%の絶対的なThresholdではなく、直近50本のFeature Lookback内におけるRelative Volatilityとして扱う。Lookback内で算出可能なATR%系列を作り、現在のATR%のPercentileを0〜100で返す。低いATR%は低Score、高いATR%は高Scoreとする。Tieはmid-rank相当の決定的な方法で扱う。ATR%=0だけの系列ではScoreを0とする。
+
+#### Range Stay Ratio / Range Break Count
+
+Evaluation Windowは直近20本とする。各Evaluation Candleより前の20本からReference Rangeを作る。
+
+```text
+Reference Upper = previous 20 candlesの最高High
+Reference Lower = previous 20 candlesの最低Low
+```
+
+Evaluation CandleのCloseが `Reference Lower <= Close <= Reference Upper` の場合、そのCandleはRange内に滞在したと判定する。
+
+```text
+rangeStayRatio = Range内に滞在したEvaluation Candle数
+                  / 有効なEvaluation Candle数 * 100
+```
+
+Evaluation Candle自身はReference Rangeへ含めない。
+
+`High > Reference Upper` または `Low < Reference Lower` の場合、そのCandleをRange Breakとして1回Countする。同一Candleで上下両方をBreakしてもCountは1とする。
+
+#### Reversal Count / Oscillation
+
+直近20本をEvaluation Windowとし、各CandleのDirectionを次で判定する。
+
+```text
+delta = Close[i] - Close[i-1]
+threshold = ATR14[i] * 0.25
+
+delta >= threshold  -> +1
+delta <= -threshold -> -1
+それ以外           -> 0
+```
+
+0 Directionは無視し、直前の非0 Directionと現在の非0 Directionが逆になった場合にReversalを1回Countする。ATR14が0で価格変化もない場合はDirection 0として扱う。
+
+```text
+reversalScore = clamp(reversalCount / 6.0 * 100, 0, 100)
+oscillation = 0.60 * reversalScore + 0.40 * rangeStayRatio
+```
+
+結果は0〜100へClampする。
+
+#### Range Stability
+
+20本のRolling Rangeを使用し、各時点の最高High、最低Lowから次を算出する。
+
+```text
+rangeWidth = upper - lower
+rangeCenter = (upper + lower) / 2
+```
+
+Range WidthはClose等で正規化した値を使用する。直近の有効なRolling Range Width系列の変動係数を `CV = standard deviation / mean` とし、次でWidth Stability Scoreを算出する。
+
+```text
+widthStabilityScore = 100 * (1 - clamp(CV / 0.5, 0, 1))
+```
+
+評価期間の最初と最後のRange Center差を平均Range Widthで正規化し、次でCenter Stability Scoreを算出する。
+
+```text
+centerDriftRatio = abs(lastCenter - firstCenter) / averageRangeWidth
+centerStabilityScore = 100 * (1 - clamp(centerDriftRatio / 0.5, 0, 1))
+rangeStability = 0.60 * widthStabilityScore + 0.40 * centerStabilityScore
+```
+
+Range Widthの平均が0の場合、該当する安定性を100として扱う。結果は0〜100へClampする。
+
+#### Breakout Risk
+
+Range Break Count、現在価格のRange境界への近さ、Range Width Expansionを使用する。
+
+```text
+rangeBreakScore = clamp(rangeBreakCount / 4.0 * 100, 0, 100)
+```
+
+現在Candleより前の20本からReference Rangeを作る。現在CloseがRange外の場合のEdge Scoreは100とする。Range内かつRange Widthが0でない場合は次で算出し、0〜100へClampする。
+
+```text
+distanceToNearestEdge = min(Close - lower, upper - Close)
+edgeScore = 100 * (1 - 2 * distanceToNearestEdge / rangeWidth)
+```
+
+現在の20本Range Widthを、それ以前のRolling Range Width平均と比較する。
+
+```text
+expansionRatio = currentRangeWidth / previousAverageRangeWidth
+expansionScore = clamp((expansionRatio - 1.0) / 0.5 * 100, 0, 100)
+```
+
+Rangeが拡大していない場合はExpansion Scoreを0とする。過去平均Range Widthが0の場合、現在Range Widthも0なら0、現在Range Widthが正なら100として扱う。
+
+```text
+breakoutRisk =
+    0.50 * rangeBreakScore
+  + 0.30 * edgeScore
+  + 0.20 * expansionScore
+```
+
+結果は0〜100へClampする。Feature計算ではGrid Suitability自体を判定しない。
+
+#### Feature設定値
+
+以下の値は一箇所で追跡・変更可能にし、ロジック内へMagic Numberとして散在させない。現段階では外部Config Server等は追加しない。
+
+* Feature Lookback: 50
+* Efficiency Ratio Period: 20
+* Reference Range Period: 20
+* Evaluation Period: 20
+* Reversal ATR Multiplier: 0.25
+* Reversal Target Count: 6
+* Range Break Target Count: 4
+* ADX Normalization Lower / Upper: 15 / 40
+* EMA Separation Normalization: 2.0 ATR
+* Range Width CV Limit: 0.5
+* Range Center Drift Limit: 0.5
+* Range Expansion Limit: 0.5
+* Trend Strength Weight: ADX 0.50 / Efficiency Ratio 0.30 / EMA Separation 0.20
+* Oscillation Weight: Reversal 0.60 / Range Stay 0.40
+* Range Stability Weight: Width Stability 0.60 / Center Stability 0.40
+* Breakout Risk Weight: Range Break 0.50 / Range Edge 0.30 / Range Expansion 0.20
 
 ---
 
@@ -378,6 +564,61 @@ UNSTABLE
 
 閾値やWeightはロジック内へ散在させず、設定値として管理する。
 
+### Market Regime判定の初期ルール
+
+以下はMVPの初期ルールとする。最適値として固定せず、将来のBacktest結果をもとに調整可能な値として扱う。
+
+Market Regimeは `RANGE`、`TREND`、`UNSTABLE` の3種類とする。Regime判定はStep 5で算出済みのFeatureを入力とし、Regime判定側でIndicatorを再計算しない。
+
+判定は次の優先順位で行う。
+
+1. EXTREME UNSTABLE
+2. TREND
+3. RANGE
+4. FALLBACK UNSTABLE
+
+#### EXTREME UNSTABLE
+
+次の両方を満たす場合、他の条件より優先して `UNSTABLE` とする。
+
+```text
+Volatility >= 80
+Breakout Risk >= 85
+```
+
+Volatilityだけ、またはBreakout Riskだけが高い場合は、この条件だけではUNSTABLEとしない。
+
+#### TREND
+
+EXTREME UNSTABLEに該当しない場合、次のすべてを満たす場合に `TREND` とする。
+
+```text
+Trend Strength >= 65
+Efficiency Ratio >= 0.45
+```
+
+Range Stay RatioやRange Break CountはTRENDの必須条件としない。
+
+#### RANGE
+
+EXTREME UNSTABLEおよびTRENDに該当しない場合、次のすべてを満たす場合に `RANGE` とする。
+
+```text
+Range Stability >= 60
+Range Stay Ratio >= 70
+Oscillation >= 50
+Trend Strength < 60
+Breakout Risk < 60
+```
+
+#### FALLBACK UNSTABLE
+
+EXTREME UNSTABLE、TREND、RANGEのいずれにも該当しない場合は `UNSTABLE` とする。曖昧な状態、遷移中の状態、Feature間で条件が矛盾する状態を無理にRANGEまたはTRENDへ分類しない。
+
+判定値の境界では、EXTREME UNSTABLE、TREND、Range Stability・Range Stay Ratio・Oscillationは `>=` を使用する。RANGEのTrend StrengthとBreakout Riskは `< 60` を使用する。
+
+設定値は `RegimeSettings` 等へ集約し、判定ロジック内へMagic Numberとして散在させない。外部Config Server等は追加しない。
+
 ---
 
 ## 12. Grid Suitability Service
@@ -424,6 +665,99 @@ Score例：
 ```
 
 閾値についてもBacktest結果に応じて変更可能とする。
+
+### Grid Suitabilityの初期ルール
+
+以下はMVPの初期ルールとする。最適なWeightやThresholdとして固定せず、将来のBacktest結果をもとに検証・調整する対象として扱う。
+
+Grid Suitabilityは、現在の市場状態がGrid Tradingにどの程度適しているかを0〜100で表すRule-based Scoreとする。入力はStep 5で算出済みのFeatureとStep 6で判定済みのMarket Regimeとし、Indicatorの直接参照、Featureの再計算、Market Regimeの再判定は行わない。
+
+#### Base Score
+
+Market Regimeを考慮しないBase Scoreを、次の6 Componentから算出する。
+
+```text
+trendSafetyScore = clamp(100 - trendStrength, 0, 100)
+breakoutSafetyScore = clamp(100 - breakoutRisk, 0, 100)
+
+baseScore =
+    0.25 * rangeStability
+  + 0.20 * rangeStayRatio
+  + 0.20 * oscillation
+  + 0.15 * trendSafetyScore
+  + 0.15 * breakoutSafetyScore
+  + 0.05 * volatilityFitnessScore
+```
+
+Range Stability、Range Stay Ratio、OscillationはFeatureの値をそのまま使用する。
+
+Volatility FitnessはStep 5のRelative Volatilityに対する台形型Scoreとする。
+
+```text
+Volatility <= 20       -> 0
+20 < Volatility < 40   -> (Volatility - 20) / 20 * 100
+40 <= Volatility <= 70 -> 100
+70 < Volatility < 90   -> (90 - Volatility) / 20 * 100
+Volatility >= 90       -> 0
+```
+
+Base Scoreは計算途中で丸めず、0〜100へClampする。
+
+#### Market RegimeによるScore Cap
+
+Market RegimeをWeightへ再度直接加算せず、最終Scoreの上限として使用する。
+
+* `RANGE`: Cap 100
+* `UNSTABLE`: Cap 59
+* `TREND`: Cap 39
+
+```text
+finalScore = min(baseScore, regimeCap)
+```
+
+最終Scoreだけを `HALF_UP` で整数へ変換し、丸め後の整数でLevelを判定する。
+
+```text
+0 - 39   UNSUITABLE
+40 - 59  LOW
+60 - 79  MEDIUM
+80 - 100 HIGH
+```
+
+#### Analysis Reasons
+
+Analysis ReasonsはLLMを使用せず、決定的なRule-based `List<String>` として生成する。Market Regime Reasonを必ず最初に1件追加し、以下の順序を固定する。
+
+1. Market Regime
+2. Range Stability
+3. Range Stay Ratio
+4. Oscillation
+5. Trend Strength
+6. Breakout Risk
+7. Volatility
+
+条件と文言は次のとおりとする。
+
+* RANGE: `Market regime is RANGE, which is favorable for grid trading.`
+* TREND: `Market regime is TREND, which is unfavorable for grid trading.`
+* UNSTABLE: `Market regime is UNSTABLE, so grid trading risk is elevated.`
+* Range Stability >= 70: `Recent range structure is stable.`
+* Range Stability < 50: `Recent range structure is unstable.`
+* Range Stay Ratio >= 80: `Price has remained inside the recent range.`
+* Range Stay Ratio < 60: `Price frequently leaves the recent range.`
+* Oscillation >= 60: `Price oscillation is favorable for repeated grid fills.`
+* Oscillation < 40: `Price oscillation is limited.`
+* Trend Strength >= 65: `Trend strength is high and may create one-sided grid exposure.`
+* Trend Strength < 40: `Trend strength is low, which is favorable for grid trading.`
+* Breakout Risk >= 60: `Breakout risk is elevated.`
+* Breakout Risk < 40: `Breakout risk is low.`
+* Volatility <= 20: `Volatility is too low for efficient grid fills.`
+* Volatility between 40 and 70 inclusive: `Volatility is in a favorable range for grid trading.`
+* Volatility >= 90: `Volatility is too high for grid trading.`
+
+上記の中間値ではReasonを追加しない。Market Regime Reasonが必ず存在するため、Reasonsは空Listにならない。
+
+Score Weight、Volatility Fitness Threshold、Regime Cap、Reason Thresholdは `GridSuitabilitySettings` 等へ集約し、Magic Numberとしてロジック内へ散在させない。外部Config Server等は追加しない。
 
 ---
 
@@ -539,6 +873,41 @@ volume
 ```
 
 `tradeCount` はBackend内部には保持するが、Frontend Chartで使用しない場合は必須Response項目としない。Candle Dataの取得もAnalysis APIと同じTimeframe / Windowの変換ルールを使用する。
+
+### Step 8 REST APIの確定事項
+
+MVPでは次の2 Endpointだけを実装する。Overview専用APIなどは追加しない。
+
+```text
+GET /api/v1/analysis/{symbol}
+GET /api/v1/candles/{symbol}
+```
+
+Query Parameter未指定時は、`timeframe=1h`、`window=168`を使用する。`window`はAnalysis Windowの期間ではなく、Backendが扱うCandle本数とする。
+
+MVPでサポートするSymbolは`BTC`、`ETH`、`SOL`、`XRP`とする。Symbolは大文字小文字を区別せず大文字へ正規化し、その他のSymbolはUnsupported Symbolとして扱う。Hyperliquid上の全Symbolを動的に許可する機能は追加しない。
+
+MVPでサポートするTimeframeは`15m`、`1h`、`4h`、`1d`とする。`window`は50以上5000以下のCandle本数とし、Analysis APIとCandle APIで同じValidationを使用する。
+
+入力不正はHTTP 400で返す。API ErrorのResponseは次の2項目だけを持つ共通形式とする。
+
+```json
+{
+  "code": "INVALID_TIMEFRAME",
+  "message": "Unsupported timeframe: 5m"
+}
+```
+
+`INVALID_SYMBOL`、`INVALID_TIMEFRAME`、`INVALID_WINDOW`を入力エラーのCodeとして使用する。timestamp、stack trace、debug情報、request ID、Validation Frameworkの内部構造はResponseへ含めない。
+
+HTTP StatusとCodeは次のとおりとする。
+
+* 400 Bad Request: `INVALID_SYMBOL`、`INVALID_TIMEFRAME`、`INVALID_WINDOW`
+* 404 Not Found: `NO_MARKET_DATA`。有効な入力だが、HyperliquidおよびDBからCandleを1件も取得できない場合。
+* 422 Unprocessable Entity: `INSUFFICIENT_CANDLES`。Market Dataは存在するが、要求されたwindowまたは分析に必要なCandle数を確保できない場合。架空データによる補完は行わない。
+* 502 Bad Gateway: `MARKET_DATA_UNAVAILABLE`。Hyperliquid Public APIの通信失敗や外部API異常でMarket Dataを取得できない場合。ただし、DBに要求数を満たす十分な最新Candleが存在し、外部APIが不要な場合はDBのデータを使用する。
+
+分析・Candle取得では、まず確定済みCandleをDBから利用できるか確認する。要求数を満たさない場合だけHyperliquid Public APIから取得し、確定済みCandleを内部モデルへ変換してDBへ保存する。分析には要求されたwindowの最新Candleを使用し、`currentPrice`は最新Candleの`close`、`dataAsOf`は最新Candleの時刻とする。
 
 ### Health Check
 

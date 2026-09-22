@@ -18,6 +18,16 @@
 - [x] Implementation Spec
 - [x] Screen Design
 - [x] Development Guidelines
+- [x] Step 1 - Backend Bootstrap
+- [x] Step 2 - Market Data Provider
+- [x] Step 3 - Candle Persistence
+- [x] Step 4 - Indicator
+- [x] Step 5 - Feature
+- [x] Step 6 - Market Regime
+- [x] Step 7 - Grid Suitability
+- [x] Step 8 - REST API
+- [x] Step 9 - Frontend Integration
+- [x] Step 9.5 - Dockerization
 - [x] Frontend UI Prototype
   - [x] Market Overview
   - [x] Coin Analysis
@@ -31,12 +41,11 @@
   - [x] Indicator Details
   - [x] Range Upper / Range LowerのPrototype表示
 
-Frontend UI Prototypeは実装済みとして扱う。Step順に合わせるために作り直さない。現在はBackend APIへ接続しておらず、Mock Dataを表示している。
+Frontend UI Prototypeは実装済みとして扱う。Step順に合わせるために作り直さない。既存のUIデザインを維持したまま、Step 9でBackend APIへ接続している。
 
 ### 未完了
 
-- [ ] Backend実装
-- [ ] Backend API接続
+- [ ] Step 10以降のBackend実装
 - [ ] Backtestロジック
 - [ ] Backtest UI
 
@@ -54,9 +63,9 @@ Analysis Windowの正式仕様は `docs/implementation-spec.md` を正とし、T
 
 Done when：
 
-- [ ] Spring Boot Applicationが起動する
-- [ ] `/health` が正常レスポンスを返す
-- [ ] Testが成功する
+- [x] Spring Boot Applicationが起動する
+- [x] `/health` が正常レスポンスを返す
+- [x] Testが成功する
 
 ### Step 2 - Market Data Provider
 
@@ -64,10 +73,10 @@ Done when：
 
 Done when：
 
-- [ ] HyperliquidからCandleを取得できる
-- [ ] 外部API形式を内部Candleへ変換できる
-- [ ] Analyzer側がHyperliquid固有形式へ依存しない
-- [ ] 正常系・異常系Testが成功する
+- [x] HyperliquidからCandleを取得できる
+- [x] 外部API形式を内部Candleへ変換できる
+- [x] Analyzer側がHyperliquid固有形式へ依存しない
+- [x] 正常系・異常系Testが成功する
 
 ### Step 3 - Candle Persistence
 
@@ -75,10 +84,10 @@ Done when：
 
 Done when：
 
-- [ ] Migrationを適用できる
-- [ ] Candleを保存・取得できる
-- [ ] 同一Candleの重複登録を防止できる
-- [ ] Repository / DB連携Testが成功する
+- [x] Migrationを適用できる
+- [x] Candleを保存・取得できる
+- [x] 同一Candleの重複登録を防止できる
+- [x] Repository / DB連携Testが成功する
 
 ### Step 4 - Indicator
 
@@ -86,8 +95,8 @@ Done when：
 
 Done when：
 
-- [ ] 対象Indicatorを計算できる
-- [ ] 既知データと境界値のTestが成功する
+- [x] 対象Indicatorを計算できる
+- [x] 既知データと境界値のTestが成功する
 
 ### Step 5 - Feature
 
@@ -95,8 +104,8 @@ Done when：
 
 Done when：
 
-- [ ] 対象Featureを計算できる
-- [ ] 0 / 100、閾値付近、データ不足のTestが成功する
+- [x] 対象Featureを計算できる
+- [x] 0 / 100、閾値付近、データ不足のTestが成功する
 
 ### Step 6 - Market Regime
 
@@ -104,8 +113,8 @@ Done when：
 
 Done when：
 
-- [ ] 3種類のMarket Regimeを判定できる
-- [ ] 判定閾値のBoundary Testが成功する
+- [x] 3種類のMarket Regimeを判定できる
+- [x] 判定閾値のBoundary Testが成功する
 
 ### Step 7 - Grid Suitability
 
@@ -113,9 +122,9 @@ Done when：
 
 Done when：
 
-- [ ] ScoreとLevelを算出できる
-- [ ] 判定理由を返せる
-- [ ] ScoreとLevelの境界Testが成功する
+- [x] ScoreとLevelを算出できる
+- [x] 判定理由を返せる
+- [x] ScoreとLevelの境界Testが成功する
 
 ### Step 8 - REST API
 
@@ -133,12 +142,12 @@ Done when：
 
 Done when：
 
-- [ ] Analysis APIが定義済みResponse DTOを返す
-- [ ] Candle APIがChart用Candle Dataを返す
-- [ ] `currentPrice` と `dataAsOf` を返す
-- [ ] Analysis API / Candle APIの入力ValidationとAPI Testが成功する
-- [ ] EntityやHyperliquid API Responseをそのまま外部公開していない
-- [ ] `confidence`、`name`、`chartVolatility`、`chartDrift`、`rangeUpper`、`rangeLower`を必須Responseへ追加していない
+- [x] Analysis APIが定義済みResponse DTOを返す
+- [x] Candle APIがChart用Candle Dataを返す
+- [x] `currentPrice` と `dataAsOf` を返す
+- [x] Analysis API / Candle APIの入力ValidationとAPI Testが成功する
+- [x] EntityやHyperliquid API Responseをそのまま外部公開していない
+- [x] `confidence`、`name`、`chartVolatility`、`chartDrift`、`rangeUpper`、`rangeLower`を必須Responseへ追加していない
 
 ### Step 9 - Frontend Integration
 
@@ -148,12 +157,29 @@ Done when：
 
 Done when：
 
-- [ ] Market OverviewがAnalysis APIを表示する
-- [ ] Coin AnalysisがAnalysis APIとCandle APIを表示する
-- [ ] DTOとFrontend View Modelの変換がComponent外に分離されている
-- [ ] `dataAsOf` をLast Updatedとして表示する
-- [ ] Loading / Error / Empty / Invalid Symbol / Insufficient Candle Dataを扱える
-- [ ] 既存のFrontend UIデザインを可能な限り維持している
+- [x] Market OverviewがAnalysis APIを表示する
+- [x] Coin AnalysisがAnalysis APIとCandle APIを表示する
+- [x] DTOとFrontend View Modelの変換がComponent外に分離されている
+- [x] `dataAsOf` をLast Updatedとして表示する
+- [x] Loading / Error / Empty / Invalid Symbol / Insufficient Candle Dataを扱える
+- [x] 既存のFrontend UIデザインを可能な限り維持している
+
+### Step 9.5 - Dockerization
+
+Frontend、Backend、PostgreSQLをDocker Composeで起動し、Step 1〜9のMVPを実データで動作させる。
+
+Done when：
+
+- [x] Frontend Docker imageがbuildできる
+- [x] Backend Docker imageがbuildできる
+- [x] PostgreSQLをComposeで起動できる
+- [x] BackendからPostgreSQLへ接続できる
+- [x] Flyway Migrationが成功する
+- [x] FrontendからBackend APIへ接続できる
+- [x] `docker compose up --build` でMVP全体が起動する
+- [x] Analysis API / Candle APIがDocker環境で動作する
+- [x] Market Overview / Coin Analysisが実データで動作する
+- [x] PostgreSQL Dataがvolumeへ永続化される
 
 ### Step 10 - Backtest
 
@@ -178,4 +204,4 @@ Done when：
 
 ## Next Step
 
-次に着手するStepは **Step 1 - Backend Bootstrap** とする。
+次に着手するStepは **Step 10 - Backtest** とする。

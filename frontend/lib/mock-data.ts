@@ -18,6 +18,23 @@ export const WINDOW_CANDLES: Record<AnalysisWindow, number> = {
   "30D": 720,
 }
 
+export function candleCountForWindow(timeframe: Timeframe, window: AnalysisWindow): number {
+  const minutesPerCandle: Record<Timeframe, number> = {
+    "15m": 15,
+    "1h": 60,
+    "4h": 240,
+    "1d": 1440,
+  }
+  const windowMinutes: Record<AnalysisWindow, number> = {
+    "24H": 24 * 60,
+    "3D": 3 * 24 * 60,
+    "7D": 7 * 24 * 60,
+    "14D": 14 * 24 * 60,
+    "30D": 30 * 24 * 60,
+  }
+  return windowMinutes[window] / minutesPerCandle[timeframe]
+}
+
 export interface Features {
   trendStrength: number
   volatility: number

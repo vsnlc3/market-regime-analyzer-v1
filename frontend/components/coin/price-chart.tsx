@@ -23,8 +23,8 @@ export function PriceChart({
   rangeLower,
 }: {
   candles: Candle[]
-  rangeUpper: number
-  rangeLower: number
+  rangeUpper?: number
+  rangeLower?: number
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -75,22 +75,26 @@ export function PriceChart({
       })),
     )
 
-    candleSeries.createPriceLine({
-      price: rangeUpper,
-      color: RANGE_LINE,
-      lineWidth: 1,
-      lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      title: "Range Upper",
-    })
-    candleSeries.createPriceLine({
-      price: rangeLower,
-      color: RANGE_LINE,
-      lineWidth: 1,
-      lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      title: "Range Lower",
-    })
+    if (rangeUpper !== undefined) {
+      candleSeries.createPriceLine({
+        price: rangeUpper,
+        color: RANGE_LINE,
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: "Range Upper",
+      })
+    }
+    if (rangeLower !== undefined) {
+      candleSeries.createPriceLine({
+        price: rangeLower,
+        color: RANGE_LINE,
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: "Range Lower",
+      })
+    }
 
     const volumeSeries = chart.addHistogramSeries({
       priceFormat: { type: "volume" },

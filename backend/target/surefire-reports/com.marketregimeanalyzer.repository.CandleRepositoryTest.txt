@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.marketregimeanalyzer.repository.CandleRepositoryTest
+-------------------------------------------------------------------------------
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.789 s -- in com.marketregimeanalyzer.repository.CandleRepositoryTest

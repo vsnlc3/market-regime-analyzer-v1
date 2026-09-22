@@ -1,0 +1,9 @@
+/Users/yuyashirahama/Desktop/個人開発/market-regime-analyzer/market-regime-analyzer-v1/backend/src/test/java/com/marketregimeanalyzer/MarketRegimeAnalyzerApplicationTests.java
+/Users/yuyashirahama/Desktop/個人開発/market-regime-analyzer/market-regime-analyzer-v1/backend/src/test/java/com/marketregimeanalyzer/api/RestApiControllerTest.java
+/Users/yuyashirahama/Desktop/個人開発/market-regime-analyzer/market-regime-analyzer-v1/backend/src/test/java/com/marketregimeanalyzer/feature/FeatureServiceTest.java
+/Users/yuyashirahama/Desktop/個人開発/market-regime-analyzer/market-regime-analyzer-v1/backend/src/test/java/com/marketregimeanalyzer/grid/GridSuitabilityServiceTest.java
+/Users/yuyashirahama/Desktop/個人開発/market-regime-analyzer/market-regime-analyzer-v1/backend/src/test/java/com/marketregimeanalyzer/indicator/IndicatorServiceTest.java
+/Users/yuyashirahama/Desktop/個人開発/market-regime-analyzer/market-regime-analyzer-v1/backend/src/test/java/com/marketregimeanalyzer/marketdata/CandleQueryServiceTest.java
+/Users/yuyashirahama/Desktop/個人開発/market-regime-analyzer/market-regime-analyzer-v1/backend/src/test/java/com/marketregimeanalyzer/marketdata/hyperliquid/HyperliquidMarketDataProviderTest.java
+/Users/yuyashirahama/Desktop/個人開発/market-regime-analyzer/market-regime-analyzer-v1/backend/src/test/java/com/marketregimeanalyzer/regime/RegimeServiceTest.java
+/Users/yuyashirahama/Desktop/個人開発/market-regime-analyzer/market-regime-analyzer-v1/backend/src/test/java/com/marketregimeanalyzer/repository/CandleRepositoryTest.java

@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card"
 import type { Regime } from "@/lib/mock-data"
 import { regimeClasses, regimeText, regimeDescription } from "@/lib/display"
 
-export function RegimeCard({ regime, confidence }: { regime: Regime; confidence: number }) {
+export function RegimeCard({ regime, confidence }: { regime: Regime; confidence?: number }) {
   return (
     <Card className="flex flex-col gap-4 p-5">
       <div className="flex items-center justify-between">
@@ -26,18 +26,20 @@ export function RegimeCard({ regime, confidence }: { regime: Regime; confidence:
 
       <p className="text-sm text-muted-foreground">{regimeDescription[regime]}</p>
 
-      <div className="mt-auto flex flex-col gap-1.5 border-t border-border pt-3">
-        <div className="flex items-center justify-between text-xs">
-          <span className="uppercase tracking-wider text-muted-foreground">Confidence</span>
-          <span className={cn("font-mono tabular-nums", regimeText[regime])}>{confidence}%</span>
+      {confidence !== undefined ? (
+        <div className="mt-auto flex flex-col gap-1.5 border-t border-border pt-3">
+          <div className="flex items-center justify-between text-xs">
+            <span className="uppercase tracking-wider text-muted-foreground">Confidence</span>
+            <span className={cn("font-mono tabular-nums", regimeText[regime])}>{confidence}%</span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className={cn("h-full rounded-full", regimeText[regime].replace("text-", "bg-"))}
+              style={{ width: `${confidence}%` }}
+            />
+          </div>
         </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className={cn("h-full rounded-full", regimeText[regime].replace("text-", "bg-"))}
-            style={{ width: `${confidence}%` }}
-          />
-        </div>
-      </div>
+      ) : null}
     </Card>
   )
 }

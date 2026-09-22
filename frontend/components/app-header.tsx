@@ -23,7 +23,7 @@ export function AppHeader() {
         </nav>
         <span className="ml-auto hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
           <span className="h-1.5 w-1.5 rounded-full bg-level-high" />
-          Mock data · prototype
+          Backend API
         </span>
       </div>
     </header>

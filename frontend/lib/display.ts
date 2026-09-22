@@ -38,3 +38,14 @@ export const regimeDescription: Record<Regime, string> = {
   TREND: "Price is moving directionally with persistence",
   UNSTABLE: "Price behavior is erratic and hard to model",
 }
+
+export function formatDataAsOf(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "Unknown"
+
+  return `${new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(date)} UTC`
+}

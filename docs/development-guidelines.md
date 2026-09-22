@@ -68,8 +68,9 @@ package.jsonに記載されたバージョンを変更する場合は、既存�
 現時点のFrontendはOverviewとCoin Analysisを中心としたUIプロトタイプであり、`frontend/lib/mock-data.ts` のモックデータを表示している。`frontend/app/` がページ、`frontend/components/` が表示・操作部品、`frontend/lib/` が表示用データやユーティリティを担当する。
 
 - `tf` と `win` のクエリパラメータでTimeframeとAnalysis Windowを扱う。
+- `tf` と `win` はFrontend URL上のUI内部表現とし、Backend APIの `timeframe` と `window` へ直接公開しない。Analysis WindowとTimeframeから必要Candle数への変換は、Frontend API ClientまたはAdapterで行う。
 - `frontend/components/coin/price-chart.tsx` がLightweight Chartsでローソク足とVolumeを表示する。
-- モックデータは決定的な生成処理を含むため、画面確認やテスト用の再現性を損なわない。
+- モックの価格・Featureなどの値は決定的に生成する。Candleの表示時刻は現在時刻を基準に生成されるため、時刻まで固定値とは限らない。
 - Backend API接続へ置き換える際も、UI部品がデータ取得元へ直接依存しない構成を維持する。
 - `screen-design.md` に記載されたBacktest画面やBackend API連携は、現在のFrontend実装済み機能とは区別する。
 
@@ -193,10 +194,15 @@ REST APIは分析結果を外部から取得するための入口である。定
 
 ```text
 GET /api/v1/analysis/{symbol}
+GET /api/v1/candles/{symbol}
 GET /health
 ```
 
-Analysis APIでは、`timeframe` と `window` を指定でき、symbol、timeframe、window、regime、gridSuitability、gridSuitabilityLevel、features、reasonsなど、仕様で定義された分析結果を返す。レスポンスの構造化データを正とし、画面表示用の文言や装飾をBackendの分析ロジックへ混ぜない。
+Analysis APIでは、`timeframe` とCandle本数としての `window` を指定でき、symbol、timeframe、window、currentPrice、dataAsOf、regime、gridSuitability、gridSuitabilityLevel、features、indicators、reasonsを返す。`currentPrice` は分析に使用した最新の確定Candleの `close`、`dataAsOf` はそのCandleの時刻とする。`confidence`、`name`、`chartVolatility`、`chartDrift`、`rangeUpper`、`rangeLower` は現時点でBackend APIの必須項目としない。
+
+Candle APIはChart表示用のCandle DataをAnalysis APIと分離して返す。最低限、openTime、closeTime、open、high、low、close、volumeを扱い、`tradeCount` はBackend内部に保持してもFrontend Responseの必須項目とはしない。
+
+APIで返す時刻はISO 8601 UTCを基本とする。価格・数量などはBackend内部で `BigDecimal` を使用し、APIではJSON文字列として返して精度を不用意に失わないようにする。FrontendではAPI DTOを画面用Modelへ変換し、表示形式やLightweight Charts向けの数値・Unix timestamp等への変換はAdapter側で行う。
 
 ### 実装ルール
 
@@ -206,6 +212,7 @@ Analysis APIでは、`timeframe` と `window` を指定でき、symbol、timefra
 - 成功・入力不備・外部データ取得失敗・内部エラーを区別できるようにする。
 - HTTPステータスの詳細な対応表、エラーJSONの項目、エラーコードは現仕様で固定されていない。実装時に独自の契約を広げず、必要になったらAPI仕様として先に明文化する。
 - Backend API未接続のFrontendでは、現在のモック表示をAPI仕様として扱わない。API接続時にDTOと画面用モデルの変換箇所を設ける。
+- `Last Updated` はAPIの `dataAsOf` を表示する。Loading、API Error、Empty Data、Invalid Symbol、Insufficient Candle Dataの表示方針はFrontend Integration時に定める。
 
 ## 9. Testing
 
@@ -245,10 +252,8 @@ Frontendにテストを追加する場合は、既存の構成を確認してか
 
 ## 12. 段階的な実装
 
-実装順は、このガイドラインで新しく管理しない。`docs/implementation-spec.md` の実装Stepを参照する。
+実装順、進捗、各Stepの完了条件は `docs/TASKS.md` を正とする。技術仕様は `docs/implementation-spec.md` を参照する。
 
-同仕様では、Backend起動とhealth check、HyperliquidからのCandle取得、PostgreSQLへの保存、Indicator、Feature、Market Regime、Grid Suitability、Analysis API、Backtest、Dashboardまでの実装項目がStep 1〜10として定義されている。
-
-Backend実装は原則として `docs/implementation-spec.md` の実装Stepを基準に進める。Stepは依存関係や実装順を判断するための基本方針として利用する。既に実装済みのFrontend UI Prototypeは例外として扱い、Step順に合わせるためだけに作り直さない。未実装部分については、必要な前提を無視して先のBackend機能を実装しない。
+Backend実装は `docs/TASKS.md` のStepを基準に進める。Stepは依存関係や実装順を判断するための基本方針として利用する。既に実装済みのFrontend UI Prototypeは完了済みとして扱い、Step順に合わせるためだけに作り直さない。未実装部分については、必要な前提を無視して先のBackend機能を実装しない。
 
 将来候補として扱えるのは、既存docsに記載されたWebSocketによるRealtime取得、追加のHistorical Data Provider、Strategy Selector、Backtest画面の拡張などに限る。候補は現在の必須要件と混同せず、この文書で未定義の具体的な設計や責務を追加しない。

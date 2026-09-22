@@ -8,7 +8,7 @@
 
 **「現在の相場がGrid Tradingに適しているか」**
 
-を判定し、Grid Botやユーザーに分析結果を提供する。
+を判定し、ユーザーに分析結果を提供する。
 
 将来的には複数の売買戦略から、その相場に適した戦略を選択する **Strategy Selector** へ拡張する。
 
@@ -24,11 +24,9 @@ Market Data
 Market Regime Analyzer
     ↓
 分析結果
-    ↓
-Grid Bot / 他Trading Bot
 ```
 
-売買注文、資金管理、損失制御などはTrading Bot側の責務とする。
+売買注文、Wallet接続、実資金取引、ポジション管理、資産管理などはMVPで扱わない。
 
 ---
 
@@ -67,10 +65,12 @@ Volume
 
 ```text
 Timeframe : 1h
-Window    : 168本（過去7日）
+Window    : 7D（168本）
 ```
 
 TimeframeとWindowは変更可能とする。
+
+FrontendではAnalysis Windowを期間として表示し、Backend APIではTimeframeに応じたCandle本数として扱う。FrontendのAPI境界で期間とTimeframeから必要Candle数へ変換する。
 
 ---
 
@@ -213,14 +213,28 @@ GET /api/v1/analysis/BTC
 {
   "symbol": "BTC",
   "timeframe": "1h",
+  "window": 168,
+  "currentPrice": "112430",
+  "dataAsOf": "2026-09-22T02:30:00Z",
   "regime": "RANGE",
   "gridSuitability": 86,
+  "gridSuitabilityLevel": "HIGH",
   "features": {
     "trendStrength": 18,
     "volatility": 64,
     "rangeStability": 84,
     "oscillation": 91,
     "breakoutRisk": 21
+  },
+  "indicators": {
+    "adx": 16.4,
+    "atrPct": 1.2,
+    "efficiencyRatio": 0.18,
+    "ema20": "112430",
+    "ema50": "112180",
+    "rangeStayRatio": 91,
+    "reversalCount": 14,
+    "rangeBreakCount": 2
   },
   "reasons": [
     "Directional trend is weak",
@@ -229,6 +243,8 @@ GET /api/v1/analysis/BTC
   ]
 }
 ```
+
+ローソク足チャート用のCandle Dataは、分析結果とは分離して取得する。具体的なEndpointとResponse項目は実装仕様書を参照する。
 
 ---
 
@@ -239,8 +255,11 @@ Web画面では最低限以下を表示する。
 * Symbol
 * Current Price
 * Timeframe
+* Analysis Window
+* Last Updated（dataAsOf）
 * Market Regime
 * Grid Suitability Score
+* Grid Suitability Level
 * Trend Strength
 * Volatility
 * Range Stability
@@ -289,9 +308,6 @@ v0.1では以下を実装しない。
 * Machine Learning
 * LLMによる売買判断
 * 自動Strategy切替
-* Momentum Bot
-* Breakout Bot
-* Mean Reversion Bot
 * Funding Arbitrage
 * DCA
 * Rebalancing
@@ -332,10 +348,6 @@ Trend Following
 Momentum
 Breakout
 No Trade
-    ↓
-Risk Engine
-    ↓
-Trading Bot
 ```
 
 最終的には、

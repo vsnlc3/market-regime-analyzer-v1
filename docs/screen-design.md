@@ -196,6 +196,8 @@ $112,430
 Updated just now
 ```
 
+`Last Updated` は、Backend APIの `dataAsOf`（分析対象となった最新の確定Candleの時刻）を表示する。
+
 ---
 
 ## 4.4 Market Regime
@@ -383,7 +385,7 @@ Market Regime Analyzerの判定が実際に有効だったか検証する。
 
 主な問い：
 
-**「Grid Suitabilityを利用してGrid Botを動かした場合、常時Gridを動かすより結果が改善するか？」**
+**「Grid Suitabilityを利用した場合、Gridを常時稼働するより結果が改善するか？」**
 
 ---
 
@@ -552,12 +554,11 @@ Portfolio
 Leverage
 Stop Loss
 Take Profit
-Bot Start / Stop
 Strategy実行Button
 ```
 
 Market Regime AnalyzerはMVPでは市場分析システムであり、
-Trading Botではない。
+売買操作を行わない。
 
 ---
 
@@ -584,6 +585,8 @@ Coin Analysis
 
 Backtest画面はMVPには含まれるが、
 UI Prototypeの初回では後回しとしてよい。
+
+現在のv0 UI PrototypeではMarket OverviewとCoin Analysisを実装済みであり、Mock Dataを表示している。Backend API接続後に、既存UIを可能な限り維持したままデータソースを置き換える。
 
 ---
 

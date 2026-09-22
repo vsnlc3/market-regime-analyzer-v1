@@ -42,7 +42,7 @@ Hyperliquid REST APIとの通信にはSpring `RestClient` を使用する。
 * shadcn/ui
 * Lightweight Charts
 
-MVP初期ではBackendを優先し、Dashboardは分析API完成後に実装する。
+Frontend UI Prototypeは先行して実装済みである。Backend API完成後に、既存FrontendのMock DataをAPIへ置換する。API接続時も画面デザインを作り直すのではなく、既存UIを可能な限り維持する。
 
 ### Infrastructure
 
@@ -122,6 +122,19 @@ Window: 168 candles
 * Timeframe
 * Window
 
+FrontendではAnalysis Windowを期間として表示する。Backend APIの `window` はCandle本数として扱い、FrontendのAPI境界でAnalysis WindowとTimeframeから必要Candle数へ変換する。
+
+例：
+
+```text
+1h + 7D  → 168 candles
+15m + 7D → 672 candles
+4h + 7D  → 42 candles
+1d + 7D  → 7 candles
+```
+
+Frontend URL上の `tf` / `win` はUI内部の表現とし、Backend APIの `timeframe` / `window` とは分離する。変換処理はComponentではなく、Frontend API ClientまたはAdapterで扱う。
+
 ---
 
 ## 5. アーキテクチャ
@@ -143,7 +156,7 @@ Grid Suitability Service
      ↓
 REST API
      ↓
-Dashboard / Trading Bot
+Dashboard
 ```
 
 各責務を分離する。
@@ -453,6 +466,8 @@ timeframe=1h
 window=168
 ```
 
+`window` はBackendではCandle本数として扱う。Frontendで表示するAnalysis Windowの期間から、Timeframeに応じたCandle本数へ変換して渡す。
+
 レスポンス例：
 
 ```json
@@ -460,6 +475,8 @@ window=168
   "symbol": "BTC",
   "timeframe": "1h",
   "window": 168,
+  "currentPrice": "112430",
+  "dataAsOf": "2026-09-22T02:30:00Z",
   "regime": "RANGE",
   "gridSuitability": 86,
   "gridSuitabilityLevel": "HIGH",
@@ -470,6 +487,16 @@ window=168
     "oscillation": 91,
     "breakoutRisk": 21
   },
+  "indicators": {
+    "adx": 16.4,
+    "atrPct": 1.2,
+    "efficiencyRatio": 0.18,
+    "ema20": "112430",
+    "ema50": "112180",
+    "rangeStayRatio": 91,
+    "reversalCount": 14,
+    "rangeBreakCount": 2
+  },
   "reasons": [
     "Directional trend is weak",
     "Price remains inside a stable range",
@@ -477,6 +504,41 @@ window=168
   ]
 }
 ```
+
+`currentPrice` は、MVPでは分析に使用した最新の確定Candleの `close` とする。`dataAsOf` は分析対象となった最新の確定Candleの時刻とする。
+
+APIで返す時刻はISO 8601 UTCを基本とする。価格・数量など精度が重要な値はJSON文字列として返し、Backend内部の `BigDecimal` の精度を不用意に失わないようにする。FrontendではAPI DTOを画面用Modelへ変換し、表示形式やLightweight Chartsが必要とする数値・Unix timestamp等への変換はAdapter側で行う。
+
+`confidence` は現時点ではFrontend Mock専用項目とし、Backend API Contractには含めない。`name` はFrontend側の静的Metadataとして扱う。`chartVolatility`、`chartDrift` はMock Candle生成専用であり、APIへ追加しない。`rangeUpper`、`rangeLower` は現在のPrototype表示用であり、正式な計算仕様が確定するまでAnalysis APIの必須項目にしない。
+
+### Candle Data
+
+Price Chart用のCandle DataはAnalysis APIと分離して取得する。
+
+```text
+GET /api/v1/candles/{symbol}
+```
+
+Query：
+
+```text
+timeframe=1h
+window=168
+```
+
+ResponseにはChart表示に必要な次の項目を含める。
+
+```text
+openTime
+closeTime
+open
+high
+low
+close
+volume
+```
+
+`tradeCount` はBackend内部には保持するが、Frontend Chartで使用しない場合は必須Response項目としない。Candle Dataの取得もAnalysis APIと同じTimeframe / Windowの変換ルールを使用する。
 
 ### Health Check
 
@@ -557,123 +619,11 @@ Analyzer側の分析ロジックはData Providerの違いを意識しない設�
 
 ## 17. MVP実装順序
 
-### Step 1
+現在の実装順序、進捗、各Stepの完了条件は `docs/TASKS.md` を正とする。
 
-Spring Boot Backendプロジェクトを作成する。
+本仕様書では、Backendのアーキテクチャ、責務、データモデル、分析ロジック、API、Backtestなどの技術仕様を定義する。Stepの詳細な進捗管理やDone条件は重複して管理しない。
 
-最低限以下を確認する。
-
-```text
-アプリケーション起動
-GET /health
-Unit Test実行
-```
-
-この段階ではDB・Indicator・Analyzer・Frontendを実装しない。
-
-### Step 2
-
-Hyperliquid `candleSnapshot` へ接続する。
-
-以下を取得できる状態にする。
-
-```text
-BTC
-1h
-168 candles
-```
-
-取得結果を内部のCandleモデルへ変換する。
-
-この段階ではDB保存を行わなくてもよい。
-
-### Step 3
-
-PostgreSQL・Spring Data JPA・Flywayを導入する。
-
-取得したCandleをDBへ保存できるようにする。
-
-以下を保証する。
-
-```text
-同一Candleの重複登録防止
-確定済みCandleの保存
-未確定Candleの更新
-```
-
-### Step 4
-
-Indicator Serviceを実装する。
-
-```text
-ADX
-ATR
-ATR %
-EMA
-Bollinger Band
-```
-
-### Step 5
-
-Feature Serviceを実装する。
-
-```text
-Trend Strength
-Volatility
-Efficiency Ratio
-Range Stability
-Range Stay Ratio
-Reversal Count
-Oscillation
-Range Break Count
-Breakout Risk
-```
-
-### Step 6
-
-Market Regime Analyzerを実装する。
-
-```text
-RANGE
-TREND
-UNSTABLE
-```
-
-### Step 7
-
-Grid Suitability Serviceを実装する。
-
-```text
-0 ～ 100
-```
-
-のScoreと判定理由を返す。
-
-### Step 8
-
-Analysis APIを実装する。
-
-```text
-GET /api/v1/analysis/{symbol}
-```
-
-### Step 9
-
-Backtest機能を実装する。
-
-```text
-Always Grid
-
-vs
-
-Analyzer + Grid
-```
-
-を比較可能にする。
-
-### Step 10
-
-Dashboardを実装する。
+Frontend UI PrototypeはBackendより先に実装済みである。Backend API完成後に、既存FrontendのMock DataをAPIへ置換する。既存UIをStep順に合わせるためだけに作り直さない。
 
 ---
 
@@ -685,6 +635,7 @@ MVPのDashboardでは最低限以下を表示する。
 * Current Price
 * Timeframe
 * Analysis Window
+* Last Updated（`dataAsOf`）
 * Market Regime
 * Grid Suitability Score
 * Grid Suitability Level
@@ -721,9 +672,6 @@ MVPのDashboardでは最低限以下を表示する。
 * Strategy自動切替
 * Machine Learning
 * LLMによる市場判定
-* Momentum Bot
-* Breakout Bot
-* Mean Reversion Bot
 * DCA
 * Rebalancing
 * Funding Arbitrage
@@ -738,8 +686,7 @@ MVPのDashboardでは最低限以下を表示する。
 
 ## 20. 実装上の重要方針
 
-* AnalyzerとTrading Botを分離する
-* Analyzerは注文を実行しない
+* Analyzerは市場分析のみを担当し、注文・Wallet・資産操作を行わない
 * 外部API依存をMarket Data Providerへ隔離する
 * AnalyzerからHyperliquid APIを直接呼ばない
 * IndicatorとFeatureを分離する
@@ -803,10 +750,6 @@ Strategy Selector
 │ Breakout             │
 │ No Trade             │
 └──────────────────────┘
-     ↓
-Risk Engine
-     ↓
-Trading Bot
 ```
 
 最終的には、
